@@ -1,0 +1,114 @@
+.import-guidance {
+  color: var(--muted);
+  line-height: 1.65;
+}
+.import-detected-columns {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.import-detected-columns > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.import-detected-columns dt {
+  color: var(--muted);
+}
+.import-detected-columns dd {
+  margin: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.import-mapping-settings {
+  min-width: 0;
+}
+.import-mapping-settings > summary {
+  color: var(--primary);
+  font-weight: 650;
+  cursor: pointer;
+  padding-block: 10px;
+}
+.import-mapping-settings[open] {
+  display: grid;
+  gap: 12px;
+}
+.import-mapping-settings label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.import-mapping-settings small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.import-correction {
+  display: grid;
+  gap: 12px;
+  margin-block: 10px;
+}
+.import-correction .button {
+  justify-self: start;
+}
+.import-content select {
+  max-width: 100%;
+}
+.import-assistant,
+.import-answer-form,
+.import-dialogue {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.import-assistant-label {
+  color: var(--primary);
+  font-weight: 650;
+}
+.import-dialogue p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.import-question {
+  background: var(--surface);
+}
+.import-reply {
+  justify-self: end;
+  max-width: 90%;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.import-answer-choices {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.import-answer-choices .button {
+  white-space: normal;
+  text-align: left;
+  min-height: 44px;
+}
+.import-data-notice {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.import-answer-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 12px;
+  font: inherit;
+  background: var(--paper);
+  color: var(--text);
+}
