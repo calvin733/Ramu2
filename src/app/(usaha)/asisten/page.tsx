@@ -11,7 +11,7 @@ import {
 import { businessDate } from "@/domain/sales-report";
 import { requireBusiness, uuidPattern } from "@/server/account";
 import { assistantQuery, selectedProducts } from "@/server/assistant-links";
-import { businessSales } from "@/server/business-sales";
+import { businessSales, businessSalesContext } from "@/server/business-sales";
 import { chatModelStatus } from "@/server/chat-model";
 import {
   conversationList,
@@ -38,7 +38,7 @@ export default async function Assistant({
       const [initial, history, sales] = await Promise.all([
         id ? readConversation(scope, id) : null,
         conversationList(scope),
-        businessSales(params, true),
+        businessSalesContext(params, true),
       ]);
       if (id && !initial)
         return (
@@ -55,16 +55,14 @@ export default async function Assistant({
           history={history}
           demo={false}
           rangeLabel={
-            sales.report
-              ? formatRange(sales.report.active)
-              : periodLabel(sales.period)
+            sales.active ? formatRange(sales.active) : periodLabel(sales.period)
           }
           limited={!process.env.GEMINI_API_KEY}
           connection={
             chatModelStatus() === "ready"
               ? "Gemini siap digunakan. Ketersediaan diperiksa saat mengirim pesan."
               : chatModelStatus() === "billing"
-                ? "Data usaha dihitung di RAMU. Untuk mencoba Gemini gratis, buka Asisten demo."
+                ? "Analisis usaha memakai data yang tersedia di RAMU."
                 : "Analisis dasar aktif. Gemini belum dikonfigurasi."
           }
           filters={{

@@ -22,6 +22,22 @@ import type { Conversation } from "@/server/chat-conversations";
 import "./chat-view.css";
 
 const demoKey = "ramu-percakapan-demo-v1";
+
+function ProviderNotice({ notice }: { notice?: string }) {
+  if (
+    !notice ||
+    /^Data usaha dihitung di RAMU\.\s*Gemini(?:\s+gratis)? hanya digunakan pada demo data contoh\.?$/i.test(
+      notice.trim(),
+    )
+  )
+    return null;
+  return (
+    <p className="conversation-provider-notice">
+      {notice.replace(/\bGemini\s+gratis\b/gi, "Gemini")}
+    </p>
+  );
+}
+
 const starters = [
   "Bagaimana penjualan bulan ini?",
   "Produk mana yang paling tidak laris?",
@@ -595,11 +611,7 @@ export function ChatView({
                     </span>
                   )}
                 </div>
-                {answer.providerNotice && (
-                  <p className="conversation-provider-notice">
-                    {answer.providerNotice}
-                  </p>
-                )}
+                <ProviderNotice notice={answer.providerNotice} />
               </article>
             </div>
           ))}
@@ -716,7 +728,7 @@ export function ChatView({
                 {demo
                   ? "Demo memakai data contoh. Gunakan pertanyaan nonrahasia; percakapan dapat diproses Google untuk peningkatan layanan."
                   : limited
-                    ? "Analisis dasar dihitung RAMU. Gemini gratis hanya tersedia pada demo data contoh."
+                    ? "Analisis usaha memakai perhitungan RAMU."
                     : connection ||
                       "Angka dihitung RAMU dan penjelasan dapat dibantu Gemini."}{" "}
                 <Link href="/privasi">Privasi</Link> ·{" "}

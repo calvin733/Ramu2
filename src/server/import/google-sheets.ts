@@ -28,6 +28,57 @@ export function googleSheetsConfig(): SheetsPickerConfig | null {
 
 export class SheetsAccessError extends ImportError {}
 
+type SheetsOperation = "metadata" | "header_preview" | "selected_tab";
+class SheetsResponseError extends ImportError {}
+
+function failureCode(error: unknown) {
+  const value = error as {
+    name?: string;
+    cause?: { code?: string; message?: string };
+  };
+  if (value?.name === "TimeoutError" || value?.name === "AbortError")
+    return "TIMEOUT";
+  const code = value?.cause?.code;
+  if (
+    code &&
+    [
+      "ECONNRESET",
+      "ECONNREFUSED",
+      "EAI_AGAIN",
+      "ENOTFOUND",
+      "ETIMEDOUT",
+      "UND_ERR_CONNECT_TIMEOUT",
+      "UND_ERR_SOCKET",
+      "CERT_HAS_EXPIRED",
+      "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+    ].includes(code)
+  )
+    return code;
+  if (value?.cause?.message === "unexpected redirect")
+    return "REDIRECT_BLOCKED";
+  return "NETWORK_ERROR";
+}
+
+function reportFailure(
+  operation: SheetsOperation,
+  attempt: number,
+  started: number,
+  status: number | undefined,
+  code: string,
+) {
+  // Never log URLs, file IDs, Google tokens, response bodies or spreadsheet values.
+  console.warn(
+    "RAMU_SHEETS_READ_FAILED",
+    JSON.stringify({
+      operation,
+      attempt,
+      status,
+      code,
+      elapsedMs: Date.now() - started,
+    }),
+  );
+}
+
 async function readLimitedJson(response: Response): Promise<unknown> {
   const reader = response.body?.getReader();
   if (!reader) throw new ImportError("Google Sheets mengirim respons kosong.");
@@ -48,41 +99,90 @@ async function readLimitedJson(response: Response): Promise<unknown> {
       chunks.push(decoder.decode(value, { stream: true }));
     }
     chunks.push(decoder.decode());
-    return JSON.parse(chunks.join(""));
+    try {
+      return JSON.parse(chunks.join(""));
+    } catch {
+      throw new SheetsResponseError(
+        "Google Sheets mengirim respons yang belum dapat dibaca. Coba lagi.",
+      );
+    }
   } finally {
     reader.releaseLock();
   }
 }
 
-async function sheetsJson(path: string, token: string, body?: object) {
-  try {
-    const url = "https://sheets.googleapis.com/v4/spreadsheets/" + path;
-    const response = await fetch(url, {
-      cache: "no-store",
-      redirect: "error",
-      signal: AbortSignal.timeout(15_000),
-      method: body ? "POST" : "GET",
-      headers: body
-        ? {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
-          }
-        : { Authorization: "Bearer " + token },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (response.status === 401 || response.status === 403)
-      throw new SheetsAccessError(connectionMessage);
-    if (response.status === 404)
-      throw new SheetsAccessError(
-        "Spreadsheet tidak ditemukan atau aksesnya berubah. Hubungkan ulang atau pilih sumber lain.",
+async function sheetsJson(
+  path: string,
+  token: string,
+  operation: SheetsOperation,
+  body?: object,
+) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const started = Date.now();
+    let status: number | undefined;
+    try {
+      const url = "https://sheets.googleapis.com/v4/spreadsheets/" + path;
+      const response = await fetch(url, {
+        cache: "no-store",
+        redirect: "error",
+        signal: AbortSignal.timeout(15_000),
+        method: body ? "POST" : "GET",
+        headers: body
+          ? {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            }
+          : { Authorization: "Bearer " + token },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      status = response.status;
+      if (!response.ok) {
+        reportFailure(operation, attempt, started, status, "GOOGLE_HTTP_ERROR");
+        await response.body?.cancel().catch(() => {});
+        if (status === 401 || status === 403)
+          throw new SheetsAccessError(connectionMessage);
+        if (status === 404)
+          throw new SheetsAccessError(
+            "Spreadsheet tidak ditemukan atau aksesnya berubah. Hubungkan ulang atau pilih sumber lain.",
+          );
+        if (
+          (status === 429 || [500, 502, 503, 504].includes(status)) &&
+          attempt === 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          continue;
+        }
+        if (status === 429)
+          throw new ImportError(
+            "Google Sheets sedang mencapai batas permintaan. Tunggu sebentar. Coba lagi.",
+          );
+        throw new ImportError("Google Sheets belum dapat dibaca. Coba lagi.");
+      }
+      return await readLimitedJson(response);
+    } catch (error) {
+      if (
+        error instanceof ImportError &&
+        !(error instanceof SheetsResponseError)
+      )
+        throw error;
+      const code =
+        error instanceof SheetsResponseError
+          ? "INVALID_JSON"
+          : failureCode(error);
+      reportFailure(operation, attempt, started, status, code);
+      if (attempt === 1) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        continue;
+      }
+      if (error instanceof SheetsResponseError) throw error;
+      throw new ImportError(
+        code === "TIMEOUT" || code === "UND_ERR_CONNECT_TIMEOUT"
+          ? "Google Sheets membutuhkan waktu terlalu lama. Coba lagi."
+          : "Koneksi RAMU ke Google Sheets terputus. Coba lagi.",
       );
-    if (!response.ok)
-      throw new ImportError("Google Sheets belum dapat dibaca. Coba lagi.");
-    return await readLimitedJson(response);
-  } catch (error) {
-    if (error instanceof ImportError) throw error;
-    throw new ImportError("Google Sheets belum dapat dihubungi. Coba lagi.");
+    }
   }
+  throw new ImportError("Google Sheets belum dapat dibaca. Coba lagi.");
 }
 
 export function sheetFromGoogle(values: unknown): SalesSheet {
@@ -130,9 +230,13 @@ export async function openGoogleSpreadsheet(
 
   const query = new URLSearchParams({
     fields:
-      "properties(title),sheets(properties(sheetId,title,hidden,sheetType,gridProperties(rowCount)))",
+      "properties(title),sheets(properties(sheetId,title,hidden,sheetType,gridProperties(rowCount,columnCount)))",
   });
-  const metadata = (await sheetsJson(spreadsheetId + "?" + query, token)) as {
+  const metadata = (await sheetsJson(
+    spreadsheetId + "?" + query,
+    token,
+    "metadata",
+  )) as {
     properties?: { title?: string };
     sheets?: {
       properties?: {
@@ -140,7 +244,7 @@ export async function openGoogleSpreadsheet(
         title?: string;
         sheetType?: string;
         hidden?: boolean;
-        gridProperties?: { rowCount?: number };
+        gridProperties?: { rowCount?: number; columnCount?: number };
       };
     }[];
   };
@@ -174,16 +278,25 @@ export async function openGoogleSpreadsheet(
       const data = (await sheetsJson(
         spreadsheetId + "/values:batchGetByDataFilter",
         token,
+        "header_preview",
         {
-          dataFilters: tabs.map((tab) => ({
-            gridRange: {
-              sheetId: tab.id,
-              startRowIndex: 0,
-              endRowIndex: 3,
-              startColumnIndex: 0,
-              endColumnIndex: 80,
-            },
-          })),
+          dataFilters: tabs.map((tab) => {
+            const grid = metadata.sheets?.find(
+              (s) => s.properties?.sheetId === tab.id,
+            )?.properties?.gridProperties;
+            return {
+              gridRange: {
+                sheetId: tab.id,
+                startRowIndex: 0,
+                endRowIndex: Math.max(1, Math.min(3, grid?.rowCount ?? 3)),
+                startColumnIndex: 0,
+                endColumnIndex: Math.max(
+                  1,
+                  Math.min(80, grid?.columnCount ?? 80),
+                ),
+              },
+            };
+          }),
           majorDimension: "ROWS",
           valueRenderOption: "FORMATTED_VALUE",
         },
@@ -223,6 +336,7 @@ export async function openGoogleSpreadsheet(
       const data = (await sheetsJson(
         spreadsheetId + "/values:batchGetByDataFilter",
         token,
+        "selected_tab",
         {
           dataFilters: [{ gridRange: { sheetId } }],
           majorDimension: "ROWS",

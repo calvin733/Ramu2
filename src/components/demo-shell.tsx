@@ -9,10 +9,10 @@ import {
   Target,
   type LucideProps,
 } from "lucide-react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { demoAsOf, demoBusiness } from "@/demo/fixture";
+import { demoAsOf, demoBusiness } from "@/demo/meta";
 import { periodParams, readPeriod } from "@/domain/sales";
 import { Wordmark } from "./brand";
 
@@ -21,6 +21,22 @@ function ChatIcon(props: LucideProps) {
     <MessageCircle {...props}>
       <path d="M8 9h8M8 13h5" />
     </MessageCircle>
+  );
+}
+
+function NavigationPending({ label }: { label: string }) {
+  const { pending } = useLinkStatus();
+  return (
+    <>
+      <span
+        className="nav-progress"
+        data-pending={pending}
+        aria-hidden="true"
+      />
+      <span className="sr-only" role="status">
+        {pending ? `Membuka ${label}.` : ""}
+      </span>
+    </>
   );
 }
 
@@ -149,6 +165,7 @@ export function DemoShell({
                 />
                 <span className="nav-label">{label}</span>
                 <span className="nav-mobile-label">{mobile}</span>
+                <NavigationPending label={label} />
               </Link>
             );
           })}

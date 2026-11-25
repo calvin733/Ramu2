@@ -1,7 +1,5 @@
-export default function SalesLoading() {
-  return (
-    <p className="state-panel" role="status">
-      Memuat data penjualan…
-    </p>
-  );
+import { FeatureLoading } from "@/components/feature-loading";
+
+export default function Loading() {
+  return <FeatureLoading title="Dashboard" />;
 }

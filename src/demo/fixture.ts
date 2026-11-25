@@ -6,10 +6,8 @@ import {
 } from "../domain/sales.ts";
 import type { Target } from "../domain/targets.ts";
 
-export const demoAsOf = "2026-11-17";
-export const demoBusiness = "Roti & Cerita";
-export const demoSource = "Catatan penjualan contoh";
-export const demoProduct = { name: "Brownies Almond", share: 34 };
+import { demoAsOf } from "./meta.ts";
+export { demoAsOf, demoBusiness, demoSource, demoProduct } from "./meta.ts";
 
 const novemberRevenue = [
   860, 1010, 920, 1150, 1110, 1290, 1200, 1480, 1380, 1580, 1440, 1760, 1600,

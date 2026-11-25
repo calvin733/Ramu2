@@ -43,9 +43,9 @@ export default function Privacy() {
         memahami pilihan makna; hindari memasukkan data pribadi atau rahasia.
       </p>
       <p>
-        Pengujian lokal struktur sintetis dapat menggunakan Gemini gratis, yang
-        menurut ketentuan Google dapat memakai input dan respons untuk
-        peningkatan produk dan peninjauan manusia. Pengelola dapat
+        Pengujian lokal struktur sintetis dapat menggunakan Gemini. Pada layanan
+        tanpa biaya, ketentuan Google mengizinkan penggunaan input dan respons
+        untuk peningkatan produk dan peninjauan manusia. Pengelola dapat
         menonaktifkannya melalui konfigurasi GEMINI_IMPORT_ENABLED. Konfirmasi
         pengguna disimpan bersama pemetaan sumber yang diaktifkan agar tidak
         ditanyakan kembali saat struktur kolom tetap sama. Struktur ini berbeda
@@ -85,14 +85,14 @@ export default function Privacy() {
       </p>
       <h2>Pengujian dan pilihan penggunaan</h2>
       <p>
-        Demo memakai data usaha sintetis. Gemini gratis diaktifkan secara
-        eksplisit untuk demo lokal. Google dapat memakai prompt dan respons
-        layanan gratis untuk meningkatkan produk dan peninjauan manusia. Jangan
-        memasukkan data pribadi atau rahasia. Riwayat demo diverifikasi dengan
-        tanda tangan server sebelum diteruskan sebagai konteks. Analisis dasar
-        tersedia tanpa mengirim prompt ke Google saat Gemini tidak
-        dikonfigurasi. Pengelola dapat menonaktifkan Gemini dengan menghapus API
-        key dari konfigurasi server.
+        Demo memakai data usaha sintetis. Gemini diaktifkan secara eksplisit
+        untuk demo lokal. Google dapat memakai prompt dan respons layanan gratis
+        untuk meningkatkan produk dan peninjauan manusia. Jangan memasukkan data
+        pribadi atau rahasia. Riwayat demo diverifikasi dengan tanda tangan
+        server sebelum diteruskan sebagai konteks. Analisis dasar tersedia tanpa
+        mengirim prompt ke Google saat Gemini tidak dikonfigurasi. Pengelola
+        dapat menonaktifkan Gemini dengan menghapus API key dari konfigurasi
+        server.
       </p>
       <p>
         <a

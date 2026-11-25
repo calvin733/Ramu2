@@ -5,7 +5,12 @@ import {
   type SalesFact,
 } from "@/domain/sales-report";
 import { chatRanges } from "@/domain/chat-context";
-import { readPeriod, type SearchParams } from "@/domain/sales";
+import {
+  intersect,
+  periodWindows,
+  readPeriod,
+  type SearchParams,
+} from "@/domain/sales";
 import { requireBusiness, type BusinessScope } from "./account";
 import {
   revisionFacts,
@@ -13,14 +18,17 @@ import {
   type SalesRevision,
 } from "./sales-revisions";
 
-export async function businessSales(
+type LoadedSales = {
+  scope: BusinessScope;
+  revision: SalesRevision | null;
+  facts: SalesFact[];
+};
+
+// Period labels need revision metadata, not every transaction in the source.
+export async function businessSalesContext(
   params: SearchParams,
   keepRevision = false,
-  loaded?: {
-    scope: BusinessScope;
-    revision: SalesRevision | null;
-    facts: SalesFact[];
-  },
+  loaded?: Pick<LoadedSales, "scope" | "revision">,
 ) {
   const { business } = loaded?.scope ?? (await requireBusiness());
   const requested = keepRevision ? params.revisi : undefined;
@@ -38,14 +46,26 @@ export async function businessSales(
   const coverage = revision
     ? { start: revision.covered_from, end: latest }
     : null;
-  if (!revision || !coverage)
+  const { range } = chatRanges(params);
+  const active = coverage
+    ? range
+      ? intersect(range, coverage)
+      : (periodWindows(coverage, period, today)?.active ?? null)
+    : null;
+  return { business, revision, coverage, period, today, active };
+}
+
+export async function businessSales(
+  params: SearchParams,
+  keepRevision = false,
+  loaded?: LoadedSales,
+) {
+  const context = await businessSalesContext(params, keepRevision, loaded);
+  const { revision, coverage, period, today, active } = context;
+  if (!revision || !coverage || !active)
     return {
-      business,
-      revision: null,
-      coverage: null,
-      period,
+      ...context,
       report: null,
-      today,
     };
 
   const facts = loaded?.facts ?? (await revisionFacts(revision.id));
@@ -62,5 +82,5 @@ export async function businessSales(
   const report = range
     ? rangeSalesReport(facts, coverage, range, comparison, today, capabilities)
     : salesReport(facts, coverage, period, today, capabilities);
-  return { business, revision, coverage, period, report, today };
+  return { ...context, report };
 }

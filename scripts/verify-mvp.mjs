@@ -118,6 +118,7 @@ const previousFetch = globalThis.fetch;
 let geminiCalls = 0;
 let geminiMode = "ok";
 const apiReads = new Map();
+let navigationFactDelay = 0;
 globalThis.fetch = async (input, options = {}) => {
   const url = new URL(
     typeof input === "string" ? input : (input.url ?? input.href),
@@ -328,6 +329,8 @@ globalThis.fetch = async (input, options = {}) => {
     );
   }
   if (path === "/rest/v1/sales_facts") {
+    if (navigationFactDelay)
+      await new Promise((resolve) => setTimeout(resolve, navigationFactDelay));
     const revision = revisions.get(key("revision_id"));
     assert.equal(business?.id, key("business_id"));
     assert.equal(revision?.business_id, business?.id);
@@ -1112,6 +1115,29 @@ try {
   assert.match(dashboard, /Rp80\.000/);
   assert.match(dashboard, /2 pesanan/);
   assert.match(dashboard, /80% dari target/);
+  navigationFactDelay = 200;
+  try {
+    for (const visit of ["first", "warm"]) {
+      const before = apiReads.get("/rest/v1/sales_facts") ?? 0;
+      const started = performance.now();
+      const assistantPage = html(await owner("/asisten" + query));
+      assert.match(assistantPage, /conversation-shell/);
+      const factReads = (apiReads.get("/rest/v1/sales_facts") ?? 0) - before;
+      console.log(
+        JSON.stringify({
+          route: "/asisten",
+          visit,
+          elapsedMs: Math.round(performance.now() - started),
+          factReads,
+          simulatedFactDelayMs: navigationFactDelay,
+        }),
+      );
+      if (!process.env.RAMU_NAV_BASELINE)
+        assert.equal(factReads, 0, "opening chat only needs source metadata");
+    }
+  } finally {
+    navigationFactDelay = 0;
+  }
   const asked = await action(
     owner,
     "/asisten" + query,

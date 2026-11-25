@@ -40,8 +40,8 @@ export default function Terms() {
       <h2>Layanan Google</h2>
       <p>
         Pada tahap lokal ini, data usaha asli dihitung di RAMU dan tidak dikirim
-        ke Gemini gratis. Pemrosesan data usaha asli melalui Gemini memerlukan
-        layanan berbayar dengan Cloud Billing aktif. Layanan gratis hanya boleh
+        ke Gemini. Pemrosesan data usaha asli melalui Gemini memerlukan layanan
+        berbayar dengan Cloud Billing aktif. Layanan gratis hanya boleh
         digunakan untuk pengujian data sintetis tanpa informasi pribadi atau
         rahasia. Ketentuan Google dan kebijakan penggunaan yang berlaku tetap
         harus dipatuhi.

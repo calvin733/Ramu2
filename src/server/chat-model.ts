@@ -182,17 +182,15 @@ export async function composeChat(input: {
     return {
       provider: "basic",
       providerNotice:
-        "Gunakan pertanyaan nonrahasia tentang data contoh. Data pribadi dan rahasia tidak dikirim ke Gemini gratis.",
+        "Gunakan pertanyaan nonrahasia tentang data contoh. Data pribadi dan rahasia tidak dikirim ke Gemini.",
     };
   if (status !== "ready")
     return {
       provider: "basic",
       providerNotice:
-        status === "billing"
-          ? "Data usaha dihitung di RAMU. Gemini gratis hanya digunakan pada demo data contoh."
-          : status === "configuration"
-            ? "Konfigurasi model perlu diperiksa. Analisis dasar tetap tersedia."
-            : undefined,
+        status === "configuration"
+          ? "Konfigurasi model perlu diperiksa. Analisis dasar tetap tersedia."
+          : undefined,
     };
   if (input.signal.aborted) return { provider: "limited" };
   const grounded = groundedChatInput(input);
